@@ -3,18 +3,21 @@ from typing import Any, Dict, Optional, List, SupportsFloat
 import chess
 import random
 import stockfish
+from gymnasium import spaces
 
 
 class ChessEnv(gymnasium.Env):
-    action_space = None
+    metadata = {"render_mode": ["human", "ansi"], "render_fps": 4}
 
-    observation_space = None
+    action_space = spaces.Discrete(1)
+
+    observation_space = spaces.Discrete(1)
 
     reward_range = (-1, 1)
 
     _is_white_side: bool = None
 
-    _rewards = Dict[str, float] = {
+    _rewards: Dict[str, float] = {
         "*": 0.0,
         "1/2-1/2": 0.0,
         "1-0": +1.0 if _is_white_side else -1.0,
@@ -45,8 +48,8 @@ class ChessEnv(gymnasium.Env):
         assert self._ready, "Cannot call env.step() before calling reset()"
 
         is_white_turn = self._board.turn
-
-        if is_white_turn == self._is_white_side:
+        print(is_white_turn,self._is_white_side)
+        if is_white_turn and self._is_white_side:
             self._board_move(move=action)
         else:
             self._stockfish_client.set_position(self._moves)
@@ -60,9 +63,7 @@ class ChessEnv(gymnasium.Env):
         if done:
             self._ready = False
 
-        return observation, reward, done, None
-
-        return super().step(action)
+        return observation, reward, done, None,{"observation":observation,"moves":self._moves}
 
     def _observation(self) -> chess.Board:
         """Returns the current board position."""
@@ -87,7 +88,7 @@ class ChessEnv(gymnasium.Env):
     def render(self):
         board = self._board if self._board else chess.Board()
 
-        ## TODO : render board with Renderframes
+        return board.unicode()
 
     @property
     def legal_moves(self) -> List[chess.Move]:
